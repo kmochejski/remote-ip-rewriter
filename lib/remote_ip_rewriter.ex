@@ -8,9 +8,11 @@ defmodule RemoteIpRewriter do
   end
 
   def call(conn, _opts) do
-    conn
-    |> get_req_header(@xff_header)
-    |> rewrite_remote_ip(conn)
+    if private_network?(conn.remote_ip) do
+      conn |> get_req_header(@xff_header) |> rewrite_remote_ip(conn)
+    else
+      conn
+    end
   end
 
   defp rewrite_remote_ip([], conn) do

@@ -37,6 +37,11 @@ defmodule RemoteIpRewriterTest do
     assert conn.remote_ip == {127, 0, 0, 1}
   end
 
+  test "does not rewrite non private network remote_ip address" do
+    conn = conn(:get, "/") |> set_remote_ip({1, 2, 3, 4}) |> put_xff_header("5.6.7.8") |> App.call(@opts)
+    assert conn.remote_ip == {1, 2, 3, 4}
+  end
+
   test "stops parsing on invalid ip" do
     conn = conn(:get, "/") |> put_xff_header("3.4.5.6, malformed ip") |> App.call(@opts)
     assert conn.remote_ip == {127, 0, 0, 1}
@@ -54,6 +59,10 @@ defmodule RemoteIpRewriterTest do
 
   defp put_xff_header(conn, value) do
     put_req_header(conn, "x-forwarded-for", value)
+  end
+
+  def set_remote_ip(conn, value) do
+    %{conn | remote_ip: value}
   end
 
 end
