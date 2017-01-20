@@ -3,13 +3,13 @@ defmodule RemoteIpRewriter.Mixfile do
 
   def project do
     [app: :remote_ip_rewriter,
-     version: "0.0.2",
+     version: "0.0.3",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps,
-     description: description,
-     package: package]
+     deps: deps(),
+     description: description(),
+     package: package()]
   end
 
   def application do
