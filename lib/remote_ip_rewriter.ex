@@ -4,25 +4,28 @@ defmodule RemoteIpRewriter do
 
   @xff_header "x-forwarded-for"
 
-  def init(_opts) do
+  def init(opts) do
+    header = Keyword.get(opts, :header, @xff_header)
+    trusted_proxies = Keyword.get(opts, :trusted_proxies, []) |> Enum.map(&InetCidr.parse/1)
+    {header, trusted_proxies}
   end
 
-  def call(conn, _opts) do
-    if private_network?(conn.remote_ip) do
-      conn |> get_req_header(@xff_header) |> rewrite_remote_ip(conn)
+  def call(conn, {header, trusted_proxies}) do
+    if trust_remote_ip?(conn.remote_ip, trusted_proxies) do
+      conn |> get_req_header(header) |> rewrite_remote_ip(conn, trusted_proxies)
     else
       conn
     end
   end
 
-  defp rewrite_remote_ip([], conn) do
+  defp rewrite_remote_ip([], conn, _) do
     conn
   end
 
-  defp rewrite_remote_ip([header | _], conn) do
-    case ips_from(header) |> parse_addresses do
-      ip when is_tuple(ip) ->
-        %{conn | remote_ip: ip}
+  defp rewrite_remote_ip([header | _], conn, trusted_proxies) do
+    case ips_from(header) |> parse_addresses(trusted_proxies) do
+      remote_ip when is_tuple(remote_ip) ->
+        %{conn | remote_ip: remote_ip}
       nil ->
         conn
     end
@@ -36,15 +39,19 @@ defmodule RemoteIpRewriter do
     |> Enum.reverse
   end
 
-  defp parse_addresses([]), do: nil
+  defp parse_addresses([], _), do: nil
 
-  defp parse_addresses([address | rest]) do
+  defp parse_addresses([address | rest], trusted_proxies) do
     case address |> String.strip |> to_char_list |> :inet.parse_address do
-      {:ok, ip} ->
-        if private_network?(ip), do: parse_addresses(rest), else: ip
+      {:ok, remote_ip} ->
+        if trust_remote_ip?(remote_ip, trusted_proxies), do: parse_addresses(rest, trusted_proxies), else: remote_ip
       _ ->
         nil
     end
+  end
+
+  defp trust_remote_ip?(remote_ip, trusted_proxies) do
+    private_network?(remote_ip) || Enum.any?(trusted_proxies, &(InetCidr.contains?(&1, remote_ip)))
   end
 
   defp private_network?({127, 0, 0, 1}), do: true
