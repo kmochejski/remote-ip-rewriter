@@ -4,11 +4,13 @@ defmodule RemoteIpRewriter do
 
   @xff_header "x-forwarded-for"
 
-  def init(_opts) do
+  def init(opts) do
+    trust_remote_ip = Keyword.get(opts, :trust_remote_ip, false)
+    {trust_remote_ip}
   end
 
-  def call(conn, _opts) do
-    if private_network?(conn.remote_ip) do
+  def call(conn, {trust_remote_ip}) do
+    if private_network?(conn.remote_ip) || trust_remote_ip do
       conn |> get_req_header(@xff_header) |> rewrite_remote_ip(conn)
     else
       conn
