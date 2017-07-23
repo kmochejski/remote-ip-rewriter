@@ -6,12 +6,13 @@ defmodule RemoteIpRewriter do
 
   def init(opts) do
     trust_remote_ip = Keyword.get(opts, :trust_remote_ip, false)
-    {trust_remote_ip}
+    header = Keyword.get(opts, :header, @xff_header)
+    {trust_remote_ip, header}
   end
 
-  def call(conn, {trust_remote_ip}) do
+  def call(conn, {trust_remote_ip, header}) do
     if private_network?(conn.remote_ip) || trust_remote_ip do
-      conn |> get_req_header(@xff_header) |> rewrite_remote_ip(conn)
+      conn |> get_req_header(header) |> rewrite_remote_ip(conn)
     else
       conn
     end
