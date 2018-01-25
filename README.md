@@ -2,7 +2,7 @@
 
 An Elixir plug to rewrite the value of **remote_ip** key of [Plug.Conn](https://hexdocs.pm/plug/Plug.Conn.html) struct if an [X-Forwarded-For](https://en.wikipedia.org/wiki/X-Forwarded-For) header is found.
 The addresses are processed from right to left to prevent ip-spoofing.
-Any private network addresses are skipped as well as addresses defined in an optional `:trusted_proxies` setting.0
+Any private network addresses are skipped as well as addresses defined in an optional `:trusted_proxies` setting.
 
 ## Installation
 
