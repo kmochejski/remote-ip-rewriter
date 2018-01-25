@@ -7,11 +7,12 @@ defmodule RemoteIpRewriter do
   def init(opts) do
     header = Keyword.get(opts, :header, @xff_header)
     trusted_proxies = Keyword.get(opts, :trusted_proxies, []) |> Enum.map(&InetCidr.parse/1)
-    {header, trusted_proxies}
+    trust_remote_ip = Keyword.get(opts, :trust_remote_ip, false)
+    {header, trusted_proxies, trust_remote_ip}
   end
 
-  def call(conn, {header, trusted_proxies}) do
-    if trust_remote_ip?(conn.remote_ip, trusted_proxies) do
+  def call(conn, {header, trusted_proxies, trust_remote_ip}) do
+    if trust_remote_ip || is_trusted?(conn.remote_ip, trusted_proxies)  do
       conn |> get_req_header(header) |> rewrite_remote_ip(conn, trusted_proxies)
     else
       conn
@@ -44,13 +45,13 @@ defmodule RemoteIpRewriter do
   defp parse_addresses([address | rest], trusted_proxies) do
     case address |> String.strip |> to_char_list |> :inet.parse_address do
       {:ok, remote_ip} ->
-        if trust_remote_ip?(remote_ip, trusted_proxies), do: parse_addresses(rest, trusted_proxies), else: remote_ip
+        if is_trusted?(remote_ip, trusted_proxies), do: parse_addresses(rest, trusted_proxies), else: remote_ip
       _ ->
         nil
     end
   end
 
-  defp trust_remote_ip?(remote_ip, trusted_proxies) do
+  defp is_trusted?(remote_ip, trusted_proxies) do
     private_network?(remote_ip) || Enum.any?(trusted_proxies, &(InetCidr.contains?(&1, remote_ip)))
   end
 

@@ -67,6 +67,31 @@ defmodule RemoteIpRewriterTest do
     end
   end
 
+  describe "use trust_remote_ip option" do
+    test "returns right most non private ip address on xff header" do
+      conn = conn(:get, "/")
+             |> set_remote_ip({1, 2, 3, 4})
+             |> put_req_header(@xff_header, "5.6.7.8, 192.168.1.100")
+             |> remote_ip(trust_remote_ip: true)
+      assert conn.remote_ip == {5, 6, 7, 8}
+    end
+
+    test "trusts both the original remote_ip as well as ips listed in trusted_proxies list" do
+      conn = conn(:get, "/")
+             |> set_remote_ip({11, 22, 33, 44})
+             |> put_req_header(@xff_header, "9.10.11.12, 5.6.7.8, 1.2.3.4, 1.1.1.1")
+             |> remote_ip(trusted_proxies: ["1.2.3.0/24", "1.1.1.1/32"], trust_remote_ip: true)
+      assert conn.remote_ip == {5, 6, 7, 8}
+    end
+
+    test "returns remote_ip if XFF header not present" do
+      conn = conn(:get, "/")
+             |> set_remote_ip({1, 2, 3, 4})
+             |> remote_ip(trust_remote_ip: true)
+      assert conn.remote_ip == {1, 2, 3, 4}
+    end
+  end
+
   describe "use trusted_proxies" do
     test "skips private addresses and trusted proxies' addresses" do
       conn = conn(:get, "/")
