@@ -23,7 +23,8 @@ defmodule RemoteIpRewriter.Mixfile do
   defp deps do
     [
       {:plug, "~> 1.1"},
-      {:inet_cidr, "~> 1.0.0"}
+      {:inet_cidr, "~> 1.0.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
 
