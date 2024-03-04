@@ -6,7 +6,7 @@ defmodule RemoteIpRewriter do
 
   def init(opts) do
     header = Keyword.get(opts, :header, @xff_header)
-    trusted_proxies = Keyword.get(opts, :trusted_proxies, []) |> Enum.map(&InetCidr.parse/1)
+    trusted_proxies = Keyword.get(opts, :trusted_proxies, []) |> Enum.map(&InetCidr.parse_cidr!/1)
     trust_remote_ip = Keyword.get(opts, :trust_remote_ip, false)
     {header, trusted_proxies, trust_remote_ip}
   end
@@ -43,7 +43,7 @@ defmodule RemoteIpRewriter do
   defp parse_addresses([], _), do: nil
 
   defp parse_addresses([address | rest], trusted_proxies) do
-    case address |> String.strip |> to_char_list |> :inet.parse_address do
+    case address |> String.trim() |> to_charlist() |> :inet.parse_address() do
       {:ok, remote_ip} ->
         if is_trusted?(remote_ip, trusted_proxies), do: parse_addresses(rest, trusted_proxies), else: remote_ip
       _ ->
